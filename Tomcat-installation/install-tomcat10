@@ -1,0 +1,104 @@
+#Update your RHEL 9 system for optimal performance
+ sudo yum update -y
+
+#install the default available versions of Java 11 or Java 17 (latest long-term support) using the following yum command as shown.
+sudo yum install java-11-openjdk  [Install Java 11]
+OR
+*sudo yum install java-17-openjdk  [Install Java 17]
+
+#check on the Java version you have installed on your system.
+java -version
+
+#To install Tomcat, you need the wget utility to download Apache Tomcat and the tar utility, which will help us extract the downloaded and compressed Apache Tomcat file.
+sudo wget https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.7/bin/apache-tomcat-10.1.7.tar.gz
+
+#To uncompress the apache Tomcat file
+sudo tar -xvf apache-tomcat-10.1.7.tar.gz
+
+#To remove the compressed directory from your system
+sudo rm apache-tomcat-10.1.7.tar.gz
+
+#To copy and paste the content to a new directory called tomacat10
+sudo mv apache-tomcat-10.1.7 tomcat10
+
+#To assign full permissiom to tomcat10 directory
+sudo chmod 777 -R /opt/tomcat10
+
+#To startup tomcat in the bin directory.
+sudo sh /opt/tomcat10/bin/startup.sh
+
+# create a soft link to start and stop tomcat from anywhere
+#To manage tomcat as a service 
+sudo ln -s /opt/tomcat10/bin/startup.sh /usr/bin/starttomcat
+sudo ln -s /opt/tomcat10/bin/shutdown.sh /usr/bin/stoptomcat
+sudo starttomcat
+echo "end on tomcat installation"
+
+
+
+
+sudo vi /etc/systemd/system/tomcat.service
+
+[Unit]
+Description=Apache Tomcat Web App Container
+Wants=network.target
+After=network.target
+[Service]
+Type=forking
+Environment=CATALINA_PID=/opt/tomcat10/temp/tomcat.pid
+Environment=CATALINA_HOME=/opt/tomcat10
+Environment='CATALINA_OPTS=-Xms512M -Xmx1G -Djava.net.preferIPv4Stack=true'
+Environment='JAVA_OPTS=-Djava.awt.headless=true'
+ExecStart=/opt/tomcat10/bin/startup.sh
+ExecStop=/opt/tomcat10/bin/shutdown.sh
+SuccessExitStatus=143
+#User=tomcat
+#Group=tomcat
+#UMask=0007
+RestartSec=10
+Restart=always
+[Install]
+WantedBy=multi-user.target
+
+
+SELinux may prevent Apache Tomcat from running. If that is the case, you can disable it with the following commands:
+sudo setenforce 0
+$ sudo sed -i 's/ELINUX=enforcing/ELINUX=disabled/g' /etc/selinux/config
+
+#Reload system daemon.
+
+sudo systemctl daemon-reload
+
+#Finally, start Apache Tomcat and check on its running status.
+
+$ sudo systemctl start tomcat
+$ sudo systemctl status tomcat
+
+#You may enable tomcat to auto-start at system boot time.
+
+$ sudo systemctl enable tomcat
+
+#Your system firewall should also allow port 8080 used by Apache Tomcat.
+
+$ sudo firewall-cmd --permanent --add-port=8080/tcp
+$ sudo firewall-cmd --reload
+
+
+
+Configuring Apache Tomcat Web UI Access
+
+The file tomcat-users.xml defines manager and admin roles.
+
+$ sudo vi /opt/tomcat10/conf/tomcat-users.xml
+
+#We can set their associated Web UI access credentials inside this file.
+
+<role rolename="admin-gui,manager-gui"/>
+<user username="tomcat_user" password="user_pa55word" roles="admin-gui,manager-gui"/>
+
+
+<role rolename="admin-gui"/>
+  <role rolename="manager-gui"/>
+  <user username="tomcat_user" password="PassWord123" roles="manager-gui"/>
+  <user username="both" password="<must-be-changed>" roles="tomcat,role1"/>
+  <user username="role1" password="<must-be-changed>" roles="role1"/>
